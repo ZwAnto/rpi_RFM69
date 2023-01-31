@@ -24,7 +24,6 @@ import random
 import time
 
 import RPi.GPIO as GPIO
-import spidev
 
 
 # Internal constants:
@@ -90,7 +89,7 @@ class RFM69:
 
 
     class _RegisterBits:
-        def __init__(self, address, *, offset=0, bits=1):
+        def __init__(self, address, *           , offset=0, bits=1):
             assert 0 <= offset <= 7
             assert 1 <= bits <= 8
             assert (offset + bits) <= 8
@@ -113,57 +112,56 @@ class RFM69:
             obj._write_u8(self._address, reg_value)
 
     # Control bits from the registers of the chip:
-    data_mode = _RegisterBits(_REG_DATA_MOD, offset=5, bits=2)
-    modulation_type = _RegisterBits(_REG_DATA_MOD, offset=3, bits=2)
-    modulation_shaping = _RegisterBits(_REG_DATA_MOD, offset=0, bits=2)
-    temp_start = _RegisterBits(_REG_TEMP1, offset=3)
-    temp_running = _RegisterBits(_REG_TEMP1, offset=2)
-    sync_on = _RegisterBits(_REG_SYNC_CONFIG, offset=7)
-    sync_size = _RegisterBits(_REG_SYNC_CONFIG, offset=3, bits=3)
-    aes_on = _RegisterBits(_REG_PACKET_CONFIG2, offset=0)
-    pa_0_on = _RegisterBits(_REG_PA_LEVEL, offset=7)
-    pa_1_on = _RegisterBits(_REG_PA_LEVEL, offset=6)
-    pa_2_on = _RegisterBits(_REG_PA_LEVEL, offset=5)
-    output_power = _RegisterBits(_REG_PA_LEVEL, offset=0, bits=5)
-    rx_bw_dcc_freq = _RegisterBits(_REG_RX_BW, offset=5, bits=3)
-    rx_bw_mantissa = _RegisterBits(_REG_RX_BW, offset=3, bits=2)
-    rx_bw_exponent = _RegisterBits(_REG_RX_BW, offset=0, bits=3)
-    afc_bw_dcc_freq = _RegisterBits(_REG_AFC_BW, offset=5, bits=3)
-    afc_bw_mantissa = _RegisterBits(_REG_AFC_BW, offset=3, bits=2)
-    afc_bw_exponent = _RegisterBits(_REG_AFC_BW, offset=0, bits=3)
-    packet_format = _RegisterBits(_REG_PACKET_CONFIG1, offset=7, bits=1)
-    dc_free = _RegisterBits(_REG_PACKET_CONFIG1, offset=5, bits=2)
-    crc_on = _RegisterBits(_REG_PACKET_CONFIG1, offset=4, bits=1)
-    crc_auto_clear_off = _RegisterBits(_REG_PACKET_CONFIG1, offset=3, bits=1)
-    address_filter = _RegisterBits(_REG_PACKET_CONFIG1, offset=1, bits=2)
-    mode_ready = _RegisterBits(_REG_IRQ_FLAGS1, offset=7)
-    rx_ready = _RegisterBits(_REG_IRQ_FLAGS1, offset=6)
-    tx_ready = _RegisterBits(_REG_IRQ_FLAGS1, offset=5)
-    dio_0_mapping = _RegisterBits(_REG_DIO_MAPPING1, offset=6, bits=2)
-    packet_sent = _RegisterBits(_REG_IRQ_FLAGS2, offset=3)
-    payload_ready = _RegisterBits(_REG_IRQ_FLAGS2, offset=2)
+    data_mode          = _RegisterBits(_REG_DATA_MOD       , offset=5, bits=2)
+    modulation_type    = _RegisterBits(_REG_DATA_MOD       , offset=3, bits=2)
+    modulation_shaping = _RegisterBits(_REG_DATA_MOD       , offset=0, bits=2)
+    temp_start         = _RegisterBits(_REG_TEMP1          , offset=3)
+    temp_running       = _RegisterBits(_REG_TEMP1          , offset=2)
+    sync_on            = _RegisterBits(_REG_SYNC_CONFIG    , offset=7)
+    sync_size          = _RegisterBits(_REG_SYNC_CONFIG    , offset=3, bits=3)
+    aes_on             = _RegisterBits(_REG_PACKET_CONFIG2 , offset=0)
+    pa_0_on            = _RegisterBits(_REG_PA_LEVEL       , offset=7)
+    pa_1_on            = _RegisterBits(_REG_PA_LEVEL       , offset=6)
+    pa_2_on            = _RegisterBits(_REG_PA_LEVEL       , offset=5)
+    output_power       = _RegisterBits(_REG_PA_LEVEL       , offset=0, bits=5)
+    rx_bw_dcc_freq     = _RegisterBits(_REG_RX_BW          , offset=5, bits=3)
+    rx_bw_mantissa     = _RegisterBits(_REG_RX_BW          , offset=3, bits=2)
+    rx_bw_exponent     = _RegisterBits(_REG_RX_BW          , offset=0, bits=3)
+    afc_bw_dcc_freq    = _RegisterBits(_REG_AFC_BW         , offset=5, bits=3)
+    afc_bw_mantissa    = _RegisterBits(_REG_AFC_BW         , offset=3, bits=2)
+    afc_bw_exponent    = _RegisterBits(_REG_AFC_BW         , offset=0, bits=3)
+    packet_format      = _RegisterBits(_REG_PACKET_CONFIG1 , offset=7, bits=1)
+    dc_free            = _RegisterBits(_REG_PACKET_CONFIG1 , offset=5, bits=2)
+    crc_on             = _RegisterBits(_REG_PACKET_CONFIG1 , offset=4, bits=1)
+    crc_auto_clear_off = _RegisterBits(_REG_PACKET_CONFIG1 , offset=3, bits=1)
+    address_filter     = _RegisterBits(_REG_PACKET_CONFIG1 , offset=1, bits=2)
+    mode_ready         = _RegisterBits(_REG_IRQ_FLAGS1     , offset=7)
+    rx_ready           = _RegisterBits(_REG_IRQ_FLAGS1     , offset=6)
+    tx_ready           = _RegisterBits(_REG_IRQ_FLAGS1     , offset=5)
+    dio_0_mapping      = _RegisterBits(_REG_DIO_MAPPING1   , offset=6, bits=2)
+    packet_sent        = _RegisterBits(_REG_IRQ_FLAGS2     , offset=3)
+    payload_ready      = _RegisterBits(_REG_IRQ_FLAGS2     , offset=2)
 
     def __init__(
         self,
         frequency,
+        reset,
+        spi,
         *,
         sync_word=b"\x2D\xD4",
         preamble_length=4,
         encryption_key=None,
         high_power=True,
-        spi_bus=0,
-        spi_cs=0,
-        cs_pin=24,
-        rst_pin=22,
     ):
 
-        self._init_gpio(cs_pin, rst_pin)
-        self._init_spi(spi_bus, spi_cs)
+        self._reset = reset
+
+        self._init_gpio()
+        self.spi = spi
 
         self._tx_power = 13
         self.high_power = high_power
-        #self.cs = cs
-        self._reset = rst_pin
+        
         self.reset()  # Reset the chip.
         # Check the version of the chip.
         version = self._read_u8(_REG_VERSION)
@@ -239,15 +237,9 @@ class RFM69:
            Fourth byte of the RadioHead header.
         """
 
-    def _init_gpio(self, cs_pin, rst_pin):
+    def _init_gpio(self):
         GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(rst_pin, GPIO.OUT)
-        GPIO.setup(cs_pin, GPIO.OUT)
-
-    def _init_spi(self, spi_bus, spi_cs):
-        self.spi = spidev.SpiDev()
-        self.spi.open(spi_bus,spi_cs)
-        self.spi.max_speed_hz = 5000000
+        GPIO.setup(self._reset, GPIO.OUT)
 
     def _configure_radio(self):
         # Configure modulation for RadioHead library GFSK_Rb250Fd250 mode
