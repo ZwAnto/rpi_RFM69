@@ -6,7 +6,7 @@ authors = ["ZwAnto <antoine.hamon+github@pm.me>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.8"
 rpi-gpio = "^0.7.1"
 spidev = "^3.6"
 
